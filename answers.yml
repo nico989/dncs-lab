@@ -1,0 +1,18 @@
+FirstName: Nicolo'
+LastName: Vinci
+MatriculationNumber: 192425
+AcademicYear: 2019-2020
+GitHubUrl: https://github.com/nico989/dncs-lab
+Subnets:
+  HostsA:
+    RequiredAddresses: 349
+    SubnetAddress: 10.10.128.0
+    SubnetPrefixLength: 255.255.254.0
+  HostsB:
+    RequiredAddresses: 339
+    SubnetAddress: 172.16.64.0
+    SubnetPrefixLength: 255.255.254.0
+  Hub:
+    RequiredAddresses: 81
+    SubnetAddress: 192.168.32.0
+    SubnetPrefixLength: 255.255.255.128
