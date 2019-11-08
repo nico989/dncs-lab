@@ -22,7 +22,7 @@ echo "
 </html>
 " > /webserver/index.html
 
-docker run --name my-nginx -v /webserver:/usr/share/nginx/html:ro -p 8080:80 -d nginx
+docker run --name nico_nginx -v /webserver:/usr/share/nginx/html:ro -p 80:80 -d nginx
 
 ip link set enp0s8 up
 ip addr add 192.168.5.2/25 dev enp0s8

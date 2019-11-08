@@ -11,7 +11,6 @@ ip link set enp0s8.10 up
 ip addr add 192.168.1.1/23 dev enp0s8.9
 ip addr add 192.168.3.1/23 dev enp0s8.10
 ip addr add 10.10.0.1/30 dev enp0s9 # rete punto punto con router-2
-# ip route add 192.168.32.0/25 via 10.10.0.2 # rotta per la rete dell'host-c verso indirizzo del router-2
 ip route add 192.168.5.0/25 via 10.10.0.2 # rotta che raggiunge host-c verso router-2
 
 # Startup commands for router-1 go here
