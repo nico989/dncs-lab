@@ -9,5 +9,3 @@ ip link set enp0s10 up
 ovs-vsctl add-port switch enp0s8
 ovs-vsctl add-port switch enp0s9 tag=9
 ovs-vsctl add-port switch enp0s10 tag=10
-
-# Startup commands for switch go here

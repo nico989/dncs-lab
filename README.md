@@ -150,7 +150,7 @@ The last is a point-to-point subnet (PTP), because it connects only two routers 
 Previously I introduced my choice to use tagged VLANs to separate logically host-a and host-b on two different subnets. The two hosts are connected each other by switch, so I had to configure the switch for VLANs. Then I had to assign two different tag to the two different interfaces that are connected to host-a and host-b. The switch's interface enp0s9 has tag=9, instead interface epn0s10 has tag=10. Then last interface enp0s8 is connected to router and it will be a trunk port.
 At the end I configured router's interface enp0s8, that is connected to switch, like two different logical interface and for this in the previous IP address table there are two interface (enp0s8.9 and enp0s9.10) with two different IP addresses. Intuitively enpos8.9 belongs to VLAN tag=9 and enp0s9.10 belongs to VLAN tag=10.
 
-| VLAN ID | Switch Interface | Router Interface | Subnet |
+| VLAN TAG | Switch Interface | Router Interface | Subnet |
 | :---: |  :---: | :---: | :---: | :---: |
 | 9 | enp0s9 | enp0s8.9 | 192.168.1.0/23 |
 | 10 | enp0s10 | enp0s8.10 | 192.168.3.0/23 |
@@ -160,3 +160,293 @@ At the end I configured router's interface enp0s8, that is connected to switch, 
 | enp0s8 | / | router-1 |
 | enp0s9 | 9 | host-a |
 | enp0s10 | 10 | host-b |
+
+## Script IP address and switch 
+
+In Vagrantfile there is a line of code:
+```
+[VirtualMachine].vm.provision "shell", path: "[NameFile].sh"
+```
+It allows me to run scripts, as root, saved in [NameFile].sh, when [VirtualMachine] starts. So I can set immediately IP adresses, routes and other things.
+
+To set up interfaces and to assign IP addresses or to add ports to switch:
+
+- In hostA.sh:
+```
+ip link set enp0s8 up
+ip addr add 192.168.1.2/23 dev enp0s8
+```
+First line sets up interface enp0s8, then the seconds assigns IP address to interface.
+
+- In hostB.sh:
+```
+ip link set enp0s8 up
+ip addr add 192.168.3.2/23 dev enp0s8
+```
+
+- In hostC.sh:
+```
+ip link set enp0s8 up
+ip addr add 192.168.5.2/25 dev enp0s8
+```
+
+- In router1.sh:
+```
+sysctl net.ipv4.ip_forward=1
+ip link set enp0s9 up
+ip link set enp0s8 up
+ip link add link enp0s8 name enp0s8.9 type vlan id 9
+ip link add link enp0s8 name enp0s8.10 type vlan id 10
+ip link set enp0s8.9 up
+ip link set enp0s8.10 up
+ip addr add 192.168.1.1/23 dev enp0s8.9
+ip addr add 192.168.3.1/23 dev enp0s8.10
+ip addr add 10.10.0.1/30 dev enp0s9
+```
+With the first line I said to virtual machine it is router, then it will forward packets. Interesting where I divided logically interface enp0s8 into two interfaces enp0s8.9 and enp0s8.10, therefore I assigned them VLAN tag (lines4,5). At the end I gave to two logical interfaces, two different IP addresses, relatives to two different IP subnets (line 8,9).
+
+- In router2.sh:
+```
+sysctl net.ipv4.ip_forward=1
+ip link set enp0s9 up
+ip link set enp0s8 up
+ip addr add 10.10.0.2/30 dev enp0s9
+ip addr add 192.168.5.1/25  dev enp0s8
+```
+- In switch.sh:
+```
+ovs-vsctl add-br switch
+ip link set enp0s8 up
+ip link set enp0s9 up
+ip link set enp0s10 up
+ovs-vsctl add-port switch enp0s8
+ovs-vsctl add-port switch enp0s9 tag=9
+ovs-vsctl add-port switch enp0s10 tag=10
+
+```
+The first line creates switch called switch. Next three lines set interfaces of switch up. Then I added ports to interfaces, instead of IP addresses given that switch works on Data Link level. In the lasts two lines I added a port to interface with a tag, because refers to VLAN.
+
+# Routing
+
+After deciding subnetting and IP addresses, I had to make hosts communicate each other. So I opted for routes which where the most generic possible.
+
+## Script routes
+
+- hostA.sh:
+```
+ip route add 192.168.0.0/21 via 192.168.1.1
+```
+Route to 192.168.0.0/21 through 192.168.1.1, that is IP address of router-1's interface enp0s8.9. I chose generic subnet 192.168.0.0/21, because it takes the subnets up to 192.168.7.255. Therefore this router will take subnet 192.168.3.0/23, where there is host-b, and 192.168.5.0/25, where there is host-c.
+
+- hostB.sh:
+```
+ip route add 192.168.0.0/21 via 192.168.3.1
+```
+Route to 192.168.0.0/21 through 192.168.3.1, that is IP address of router-1's interface enp0s8.10.
+
+- hostC.sh:
+```
+ip route add 192.168.0.0/22 via 192.168.5.1
+```
+Route to 192.168.0.0/22 through 192.168.5.1, that is IP address of router-2's interface enp0s8. I changed generic route, because from host-c I need to reach only host-a and host-b. So 192.168.0.0/22 takes subnet up to 192.168.3.255.
+
+- router1.sh:
+```
+ip route add 192.168.5.0/25 via 10.10.0.2 
+```
+Route to 192.168.5.0/25 through 10.10.0.2, that is IP address of router-2's interface enp0s9. From router-1 I have to forward all traffic to router-2, to reach host-c. Then it is enough to use 192.168.5.0/25.
+
+- router2.sh:
+```
+ip route add 192.168.0.0/22 via 10.10.0.1
+```
+Route to 192.168.0.0/22 through 10.10.0.1, that is IP address of router-1's interface enp0s8. From router-2 I have to forward all traffic to router-1, to reach host-a and host-b. So that is enough for me generic subnet 192.168.0.0/22.
+
+## Routing tables
+
+- host-a routing table:
+
+| Destination | Prefix | Gateway | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.0.0 | /21 | 192.168.1.1 | enp0s8 |
+
+- host-b routing table:
+
+| Destination | Prefix | Gateway | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.0.0 | /21 | 192.168.3.1 | enp0s8 |
+
+- host-c routing table:
+
+| Destination | Prefix | Gateway | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.0.0 | /22 | 192.168.5.1 | enp0s8 |
+
+- router-1 routing table:
+
+| Destination | Prefix | Gateway | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.5.0 | /25 | 10.10.0.2 | enp0s9 |
+
+- router-2 routing table:
+
+| Destination | Prefix | Gateway | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.0.0 | /22 | 10.10.0.2 | enp0s9 |
+
+# Docker
+
+The assignment required to run a simple web server on docker container on host-c. Initially I installed docker on the host-c with the following commands:
+```
+apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+apt-get update
+apt-get install -y docker-ce
+```
+
+Then I thought to check if there were some container already active and if so stop them and remove them:
+```
+docker stop $(docker ps –a -q)
+docker rm $(docker ps -a -q)
+```
+
+Therefore I created a folder where I put my index.html, which is the web page mounted on web server:
+```
+mkdir /webserver
+echo "
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Hello world!</h1>
+</body>
+</html>
+" > /webserver/index.html
+```
+
+At the end I ran the docker container using nginx like docker image. Nginx acts as web server and the external port is 80:
+```
+docker run --name nico_nginx -v /webserver:/usr/share/nginx/html:ro -p 80:80 -d nginx
+```
+You can check if container is running:
+```
+vagrant@host-c:~$ sudo docker container ls
+```
+
+If container is running correctly, you will see:
+```
+CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
+bffa945debbb        nginx               "nginx -g 'daemon of…"   29 minutes ago      Up 29 minutes       0.0.0.0:80->80/tcp   nico_nginx
+```
+
+# Test
+
+First of all you have to install Vagrant and Virtual Machine. Then you can clone my repository:
+```
+git clone https://github.com/nico989/dncs-lab
+```
+
+Then you should come in the folder dncs-lab and run vagrant up:
+```
+cd dncs-lab
+~/dncs-lab$ vagrant up
+```
+
+You have to wait some minutes and after you can check the correct creation of six virtual machines with:
+```
+~/dncs-lab$ vagrant status
+```
+
+If everything went well, you will see:
+```
+Current machine states:
+
+router-1                  running (virtualbox)
+router-2                  running (virtualbox)
+switch                    running (virtualbox)
+host-a                    running (virtualbox)
+host-b                    running (virtualbox)
+host-c                    running (virtualbox)
+```
+
+For the last thing you have to connect to host-a or host-b through ssh connection and then try to curl the web page:
+```
+~/dncs-lab$ vagrant ssh host-a
+vagrant@host-a:~$ curl 192.168.5.2:80
+```
+You have to see the web page:
+```
+
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Hello world!</h1>
+</body>
+</html>
+
+```
+
+## Test all net
+
+If you want you can test all net. Firstly you shoul test the connection between host-a and host-b. Simply you have to connect to host-a or host-b through ssh connection and then you have to ping host-b or host-a through their respective IP addresses.
+```
+~/dncs-lab$ vagrant ssh host-a
+vagrant@host-a:~$ ping 192.168.3.2
+```
+As answer you should have:
+```
+PING 192.168.3.2 (192.168.3.2) 56(84) bytes of data.
+64 bytes from 192.168.3.2: icmp_seq=1 ttl=63 time=1.38 ms
+64 bytes from 192.168.3.2: icmp_seq=2 ttl=63 time=2.43 ms
+64 bytes from 192.168.3.2: icmp_seq=3 ttl=63 time=0.961 ms
+64 bytes from 192.168.3.2: icmp_seq=4 ttl=63 time=2.70 ms
+64 bytes from 192.168.3.2: icmp_seq=5 ttl=63 time=3.96 ms
+--- 192.168.3.2 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4006ms
+rtt min/avg/max/mdev = 0.961/2.289/3.965/1.056 ms
+```
+Which confirms that host-b is reacheable by host-a. 
+
+Then you can test the viceversa, that is host-a is reacheable by host-b:
+```
+~/dncs-lab$ vagrant ssh host-b
+vagrant@host-b:~$ ping 192.168.1.2
+PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.
+64 bytes from 192.168.1.2: icmp_seq=1 ttl=63 time=1.30 ms
+64 bytes from 192.168.1.2: icmp_seq=2 ttl=63 time=2.88 ms
+64 bytes from 192.168.1.2: icmp_seq=3 ttl=63 time=1.54 ms
+64 bytes from 192.168.1.2: icmp_seq=4 ttl=63 time=2.74 ms
+64 bytes from 192.168.1.2: icmp_seq=5 ttl=63 time=2.65 ms
+--- 192.168.1.2 ping statistics ---
+5 packets transmitted, 5 received, 0% packet loss, time 4006ms
+rtt min/avg/max/mdev = 1.302/2.223/2.880/0.664 ms
+
+```
+
+Therefore you should test if host-c can reach host-b or host-a, always in the same way before. This is to test if host-c can reach host-a:
+```
+~/dncs-lab$ vagrant ssh host-c
+vagrant@host-c:~$ ping 192.168.1.2
+PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.     
+64 bytes from 192.168.1.2: icmp_seq=1 ttl=62 time=1.23 ms
+64 bytes from 192.168.1.2: icmp_seq=2 ttl=62 time=3.08 ms
+64 bytes from 192.168.1.2: icmp_seq=3 ttl=62 time=3.18 ms
+64 bytes from 192.168.1.2: icmp_seq=4 ttl=62 time=3.11 ms
+--- 192.168.1.2 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3008ms
+rtt min/avg/max/mdev = 1.234/2.655/3.184/0.822 ms
+```
+
+Instead this is to test if host-c can reach host-b:
+```
+~/dncs-lab$ vagrant ssh host-c
+vagrant@host-c:~$ ping 192.168.3.2
+PING 192.168.3.2 (192.168.3.2) 56(84) bytes of data.     
+64 bytes from 192.168.3.2: icmp_seq=1 ttl=62 time=1.25 ms
+64 bytes from 192.168.3.2: icmp_seq=2 ttl=62 time=2.90 ms
+64 bytes from 192.168.3.2: icmp_seq=3 ttl=62 time=3.20 ms
+64 bytes from 192.168.3.2: icmp_seq=4 ttl=62 time=2.87 ms
+--- 192.168.3.2 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3010ms
+rtt min/avg/max/mdev = 1.256/2.559/3.204/0.766 ms
+```
