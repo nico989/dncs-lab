@@ -12,14 +12,19 @@ docker stop $(docker ps –a -q)
 docker rm $(docker ps -a -q)
 
 mkdir /webserver
-echo "
+echo '
 <!DOCTYPE html>
 <html>
+<head>
+	<meta charset="UTF-8">
+	<title>DNCS-PROJECT</title>
+</head>
 <body>
-    <h1>Hello world!</h1>
+	<h1>Web Page</h1>
+	<p>Author: <strong>Vinci Nicolò</strong> Student number: <strong>192425</strong></p>
 </body>
 </html>
-" > /webserver/index.html
+' > /webserver/index.html
 
 docker run --name nico_nginx -v /webserver:/usr/share/nginx/html:ro -p 80:80 -d nginx
 

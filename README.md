@@ -120,7 +120,7 @@ The assignment deliverable consists of a Github repository containing:
 
 # IP subnetting and IP address
 First of all I decided the CIDR (Class Inter-Domain Routing), that is how to assign IP addresses to hosts and routers and how to define routes of them. The topology is divided into four subnet. I preferred to use private class C of IP addresses. The first subnet (Hosts-A) is a tagged VLAN and it includes the host-a. It must have 349 addresses, so I chose the subnet 192.168.1.0/23 and the mask 255.255.254.0. Therefore the subnet has 510 addresses available and broadcast address is 192.168.2.255/23. The next subnet (Hosts-B) is another tagged VLAN and it includes the host-b. Given that it must have 339 addresses I opted for subnet 192.168.3.0/23 with a mask 255.255.254.0. So the subnet has 510 addresses available, like the previous subnet, and broadcast address is 192.168.4.255/23. Despite host-a and host-b are connected each other through the same switch, I had to do two tagged VLANs because the assignment required that they were in two different subnets.
-The third subnet (Hub) inludes the host-c and it must have 81 addresses. So I selected for subnet 192.168.5.0/25 and the mask 255.255.255.128. This subnet has 126 usable addresses and the broadcast address is 192.168.5.127.
+The third subnet (Hub) includes the host-c and it must have 81 addresses. So I selected the subnet 192.168.5.0/25 and the mask 255.255.255.128. This subnet has 126 usable addresses and the broadcast address is 192.168.5.127.
 The last is a point-to-point subnet (PTP), because it connects only two routers (router-1 and router-2). For this I wanted to use private class A of IP addresses. Which is why I chose 10.10.0.0/30 like subnet address and the mask 255.255.255.252. Then it has only 2 usable addresses and the broadcast address is 10.10.0.3/30.
 
 ## Subnets
@@ -147,8 +147,8 @@ The last is a point-to-point subnet (PTP), because it connects only two routers 
 
 ## VLANs
 
-Previously I introduced my choice to use tagged VLANs to separate logically host-a and host-b on two different subnets. The two hosts are connected each other by switch, so I had to configure the switch for VLANs. Then I had to assign two different tag to the two different interfaces that are connected to host-a and host-b. The switch's interface enp0s9 has tag=9, instead interface epn0s10 has tag=10. Then last interface enp0s8 is connected to router and it will be a trunk port.
-At the end I configured router's interface enp0s8, that is connected to switch, like two different logical interface and for this in the previous IP address table there are two interface (enp0s8.9 and enp0s9.10) with two different IP addresses. Intuitively enpos8.9 belongs to VLAN tag=9 and enp0s9.10 belongs to VLAN tag=10.
+Previously I introduced my choice to use tagged VLANs to separate logically host-a and host-b on two different subnets. The two hosts are connected each other by switch, so I had to configure the switch for VLANs. Then I had to assign two different tags to the two different interfaces that are connected to host-a and host-b. The switch's interface enp0s9 has tag=9, instead interface epn0s10 has tag=10. Then last interface enp0s8 is connected to router and it will be a trunk port.
+At the end I configured router's interface enp0s8, that is connected to switch, like two different logical interfaces and for this in the previous IP addresses table there are two interface (enp0s8.9 and enp0s9.10) with two different IP addresses. Intuitively enpos8.9 belongs to VLAN tag=9 and enp0s9.10 belongs to VLAN tag=10.
 
 | VLAN TAG | Switch Interface | Router Interface | Subnet |
 | :---: |  :---: | :---: | :---: | :---: |
@@ -203,7 +203,7 @@ ip addr add 192.168.1.1/23 dev enp0s8.9
 ip addr add 192.168.3.1/23 dev enp0s8.10
 ip addr add 10.10.0.1/30 dev enp0s9
 ```
-With the first line I said to virtual machine it is router, then it will forward packets. Interesting where I divided logically interface enp0s8 into two interfaces enp0s8.9 and enp0s8.10, therefore I assigned them VLAN tag (lines4,5). At the end I gave to two logical interfaces, two different IP addresses, relatives to two different IP subnets (line 8,9).
+With the first line I said to virtual machine that it is router, then it must forward packets. Interesting where I divided logically interface enp0s8 into two interfaces enp0s8.9 and enp0s8.10, therefore I assigned them VLAN tag (lines 4,5). At the end I gave to two logical interfaces, two different IP addresses, relatives to two different IP subnets (line 8,9).
 
 - In router2.sh:
 ```
@@ -224,11 +224,11 @@ ovs-vsctl add-port switch enp0s9 tag=9
 ovs-vsctl add-port switch enp0s10 tag=10
 
 ```
-The first line creates switch called switch. Next three lines set interfaces of switch up. Then I added ports to interfaces, instead of IP addresses given that switch works on Data Link level. In the lasts two lines I added a port to interface with a tag, because refers to VLAN.
+The first line creates switch called switch. Next three lines set interfaces of switch up. Then I added ports to interfaces, instead of IP addresses given that switch works on Data Link level. In the last two lines I added ports to interfaces with their respective tags, because refers to VLAN.
 
 # Routing
 
-After deciding subnetting and IP addresses, I had to make hosts communicate each other. So I opted for routes which where the most generic possible.
+After deciding subnetting and IP addresses, I had to make hosts communicate each other. So I opted for routes that are as generic as possible.
 
 ## Script routes
 
@@ -248,7 +248,7 @@ Route to 192.168.0.0/21 through 192.168.3.1, that is IP address of router-1's in
 ```
 ip route add 192.168.0.0/22 via 192.168.5.1
 ```
-Route to 192.168.0.0/22 through 192.168.5.1, that is IP address of router-2's interface enp0s8. I changed generic route, because from host-c I need to reach only host-a and host-b. So 192.168.0.0/22 takes subnet up to 192.168.3.255.
+Route to 192.168.0.0/22 through 192.168.5.1, that is IP address of router-2's interface enp0s8. I changed generic route, because from host-c I need to reach only host-a and host-b. So 192.168.0.0/22 takes the subnets up to 192.168.3.255.
 
 - router1.sh:
 ```
@@ -260,39 +260,39 @@ Route to 192.168.5.0/25 through 10.10.0.2, that is IP address of router-2's inte
 ```
 ip route add 192.168.0.0/22 via 10.10.0.1
 ```
-Route to 192.168.0.0/22 through 10.10.0.1, that is IP address of router-1's interface enp0s8. From router-2 I have to forward all traffic to router-1, to reach host-a and host-b. So that is enough for me generic subnet 192.168.0.0/22.
+Route to 192.168.0.0/22 through 10.10.0.1, that is IP address of router-1's interface enp0s8. From router-2 I have to forward all traffic to router-1, to reach host-a and host-b. So that is enough for me the generic subnet 192.168.0.0/22.
 
 ## Routing tables
 
 - host-a routing table:
 
-| Destination | Prefix | Gateway | Interface |
-| :---: |  :---: | :---: | :---: |
-| 192.168.0.0 | /21 | 192.168.1.1 | enp0s8 |
+| Destination | Prefix | Gateway |
+| :---: |  :---: | :---: |
+| 192.168.0.0 | /21 | 192.168.1.1 |
 
 - host-b routing table:
 
-| Destination | Prefix | Gateway | Interface |
-| :---: |  :---: | :---: | :---: |
-| 192.168.0.0 | /21 | 192.168.3.1 | enp0s8 |
+| Destination | Prefix | Gateway | 
+| :---: |  :---: | :---: | 
+| 192.168.0.0 | /21 | 192.168.3.1 | 
 
 - host-c routing table:
 
-| Destination | Prefix | Gateway | Interface |
+| Destination | Prefix | Gateway | 
 | :---: |  :---: | :---: | :---: |
-| 192.168.0.0 | /22 | 192.168.5.1 | enp0s8 |
+| 192.168.0.0 | /22 | 192.168.5.1 | 
 
 - router-1 routing table:
 
-| Destination | Prefix | Gateway | Interface |
-| :---: |  :---: | :---: | :---: |
-| 192.168.5.0 | /25 | 10.10.0.2 | enp0s9 |
+| Destination | Prefix | Gateway | 
+| :---: |  :---: | :---: | 
+| 192.168.5.0 | /25 | 10.10.0.2 | 
 
 - router-2 routing table:
 
-| Destination | Prefix | Gateway | Interface |
-| :---: |  :---: | :---: | :---: |
-| 192.168.0.0 | /22 | 10.10.0.2 | enp0s9 |
+| Destination | Prefix | Gateway | 
+| :---: |  :---: | :---: | 
+| 192.168.0.0 | /22 | 10.10.0.2 | 
 
 # Docker
 
@@ -305,20 +305,25 @@ apt-get update
 apt-get install -y docker-ce
 ```
 
-Then I thought to check if there were some container already active and if so stop them and remove them:
+Then I thought to check if there are some containers already active and if so I stop them and I remove them:
 ```
 docker stop $(docker ps –a -q)
 docker rm $(docker ps -a -q)
 ```
 
-Therefore I created a folder where I put my index.html, which is the web page mounted on web server:
+Therefore I created a folder where I put my index.html, which inside there is the web page mounted on web server:
 ```
 mkdir /webserver
 echo "
 <!DOCTYPE html>
 <html>
+<head>
+	<meta charset="UTF-8">
+	<title>DNCS-PROJECT</title>
+</head>
 <body>
-    <h1>Hello world!</h1>
+	<h1>Web Page</h1>
+	<p>Author: <strong>Vinci Nicolò</strong> Student number: <strong>192425</strong></p>
 </body>
 </html>
 " > /webserver/index.html
@@ -328,6 +333,7 @@ At the end I ran the docker container using nginx like docker image. Nginx acts 
 ```
 docker run --name nico_nginx -v /webserver:/usr/share/nginx/html:ro -p 80:80 -d nginx
 ```
+
 You can check if container is running:
 ```
 vagrant@host-c:~$ sudo docker container ls
@@ -379,8 +385,13 @@ You have to see the web page:
 
 <!DOCTYPE html>
 <html>
+<head>
+	<meta charset="UTF-8">
+	<title>DNCS-PROJECT</title>
+</head>
 <body>
-    <h1>Hello world!</h1>
+	<h1>Web Page</h1>
+	<p>Author: <strong>Vinci Nicolò</strong> Student number: <strong>192425</strong></p>
 </body>
 </html>
 
@@ -388,7 +399,7 @@ You have to see the web page:
 
 ## Test all net
 
-If you want you can test all net. Firstly you shoul test the connection between host-a and host-b. Simply you have to connect to host-a or host-b through ssh connection and then you have to ping host-b or host-a through their respective IP addresses.
+If you want you can test all net. Firstly you should test the connection between host-a and host-b. Simply you have to connect to host-a or host-b through ssh connection and then you have to ping host-b or host-a through their respective IP addresses.
 ```
 ~/dncs-lab$ vagrant ssh host-a
 vagrant@host-a:~$ ping 192.168.3.2
@@ -420,7 +431,6 @@ PING 192.168.1.2 (192.168.1.2) 56(84) bytes of data.
 --- 192.168.1.2 ping statistics ---
 5 packets transmitted, 5 received, 0% packet loss, time 4006ms
 rtt min/avg/max/mdev = 1.302/2.223/2.880/0.664 ms
-
 ```
 
 Therefore you should test if host-c can reach host-b or host-a, always in the same way before. This is to test if host-c can reach host-a:
