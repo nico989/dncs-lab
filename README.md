@@ -126,7 +126,7 @@ The last is a point-to-point subnet (PTP), because it connects only two routers 
 ## Subnets
 
 | Subnet | Subnet address | Prefix | Mask | Usable addresses |
-| :---: |  :---: | :---: | :---: | :---: | :---: |
+| :---: |  :---: | :---: | :---: | :---: |
 | Hosts-A | 192.168.1.0 | /23 | 255.255.254.0 | 510 |
 | Hosts-B | 192.168.3.0 | /23 | 255.255.254.0 | 510 |
 | Hub | 192.168.5.0 | /25 | 255.255.255.128 | 126 |
