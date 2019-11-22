@@ -8,9 +8,6 @@ add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(
 apt-get update
 apt-get install -y docker-ce
 
-docker stop $(docker ps –a -q) 
-docker rm $(docker ps -a -q)
-
 mkdir /webserver
 echo '
 <!DOCTYPE html>

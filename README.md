@@ -305,12 +305,6 @@ apt-get update
 apt-get install -y docker-ce
 ```
 
-Then I thought to check if there are some containers already active and if so I stop them and I remove them:
-```
-docker stop $(docker ps –a -q)
-docker rm $(docker ps -a -q)
-```
-
 Therefore I created a folder where I put my index.html, which inside there is the web page mounted on web server:
 ```
 mkdir /webserver
@@ -343,6 +337,12 @@ If container is running correctly, you will see:
 ```
 CONTAINER ID        IMAGE               COMMAND                  CREATED             STATUS              PORTS                NAMES
 bffa945debbb        nginx               "nginx -g 'daemon of…"   29 minutes ago      Up 29 minutes       0.0.0.0:80->80/tcp   nico_nginx
+```
+
+In future if you want to kill the container, you have to stop it and then kill it with follow commands:
+```
+docker stop $(docker ps –a -q)
+docker rm $(docker ps -a -q)
 ```
 
 # Test
