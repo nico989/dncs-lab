@@ -266,33 +266,41 @@ Route to 192.168.0.0/22 through 10.10.0.1, that is IP address of router-1's inte
 
 - host-a routing table:
 
-| Destination | Prefix | Gateway |
-| :---: |  :---: | :---: |
-| 192.168.0.0 | /21 | 192.168.1.1 |
+| Destination | Gateway | Genmask | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.0.0 | 0.0.0.0 | 255.255.254.0 | enp0s8 |
+| 192.168.0.0 | 192.168.1.1 | 255.255.248.0 | enp0s8 |
 
 - host-b routing table:
 
-| Destination | Prefix | Gateway | 
-| :---: |  :---: | :---: | 
-| 192.168.0.0 | /21 | 192.168.3.1 | 
+| Destination | Gateway | Genmask | Interface |
+| :---: |  :---: | :---: | :---: |
+| 192.168.2.0 | 0.0.0.0 | 255.255.254.0 | enp0s8 |
+| 192.168.0.0 | 192.168.3.1 | 255.255.248.0 | enp0s8 | 
 
 - host-c routing table:
 
-| Destination | Prefix | Gateway | 
+| Destination | Gateway | Genmask | Interface |
 | :---: |  :---: | :---: | :---: |
-| 192.168.0.0 | /22 | 192.168.5.1 | 
+| 192.168.5.0 | 0.0.0.0 | 255.255.255.128 | enp0s8 |
+| 192.168.0.0 | 192.168.5.1 | 255.255.252.0 | enp0s8 | 
 
 - router-1 routing table:
 
-| Destination | Prefix | Gateway | 
-| :---: |  :---: | :---: | 
-| 192.168.5.0 | /25 | 10.10.0.2 | 
+| Destination | Gateway | Genmask | Interface |
+| :---: |  :---: | :---: | :---: |
+| 10.10.0.0 | 0.0.0.0 | 255.255.255.252 | enp0s9 |
+| 192.168.0.0 | 0.0.0.0 | 255.255.254.0 | enp0s8.9 |
+| 192.168.2.0 | 0.0.0.0 | 255.255.254.0 | enp0s8.10 |
+| 192.168.5.0 | 10.10.0.2 | 255.255.255.128 | enp0s9 |
 
 - router-2 routing table:
 
-| Destination | Prefix | Gateway | 
-| :---: |  :---: | :---: | 
-| 192.168.0.0 | /22 | 10.10.0.2 | 
+| Destination | Gateway | Genmask | Interface |
+| :---: |  :---: | :---: | :---: |
+| 10.10.0.0 | 0.0.0.0 | 255.255.255.252 | enp0s9 |
+| 192.168.5.0 | 0.0.0.0 | 255.255.255.128 | enp0s8 |
+| 192.168.0.0 | 10.10.0.1 | 255.255.252.0 | enp0s9 | 
 
 # Docker
 
