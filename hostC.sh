@@ -31,7 +31,8 @@ iptables -A INPUT -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j AC
 iptables -A INPUT -p tcp --dport 443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT # accetto tutte le connessione https porta 443 (scopo didattico non tocca container)
 iptables -A INPUT -i lo -j ACCEPT # è ciò che un computer utilizza per inoltrare le connessioni di rete a se stesso.
 									# Ad esempio, se si esegue ping localhost o ping 127.0.0.1, il server eseguirà il ping stesso utilizzando il loopback
-iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT # accetta il protocollo icmp (per pingare) in ingresso
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT # accetta il protocollo icmp (per pingare) in ingresso request
+iptables -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT # accetta il protocollo icmp (per pingare) in ingresso reply
 iptables -A INPUT -j DROP # regola che dice che se non arrivano pacchetti che rispettano le regole sopra devono essere droppati
 
 # firewall container solo catena input

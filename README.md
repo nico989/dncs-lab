@@ -213,6 +213,7 @@ ip link set enp0s8 up
 ip addr add 10.10.0.2/30 dev enp0s9
 ip addr add 192.168.5.1/25  dev enp0s8
 ```
+
 - In switch.sh:
 ```
 ovs-vsctl add-br switch
@@ -222,7 +223,6 @@ ip link set enp0s10 up
 ovs-vsctl add-port switch enp0s8
 ovs-vsctl add-port switch enp0s9 tag=9
 ovs-vsctl add-port switch enp0s10 tag=10
-
 ```
 The first line creates switch called switch. Next three lines set interfaces of switch up. Then I added ports to interfaces, instead of IP addresses given that switch works on Data Link level. In the last two lines I added ports to interfaces with their respective tags, because refers to VLAN.
 
@@ -300,7 +300,7 @@ Route to 192.168.0.0/22 through 10.10.0.1, that is IP address of router-1's inte
 | :---: |  :---: | :---: | :---: |
 | 10.10.0.0 | 0.0.0.0 | 255.255.255.252 | enp0s9 |
 | 192.168.5.0 | 0.0.0.0 | 255.255.255.128 | enp0s8 |
-| 192.168.0.0 | 10.10.0.1 | 255.255.252.0 | enp0s9 | 
+| 192.168.0.0 | 10.10.0.1 | 255.255.252.0 | enp0s9 |
 
 # Docker
 
@@ -352,6 +352,126 @@ In future if you want to kill the container, you have to stop it and then kill i
 docker stop $(docker ps –a -q)
 docker rm $(docker ps -a -q)
 ```
+
+# Firewall
+
+To have a minimum of protection on the host-c and on the container, I tried to make a small firewall. So I added some rules to decide who can access to host-c and the container. I used the command ``` iptables ``` as root, to create my custom rules. I made rules to choose which protocols and services could reach the host-c and separately I added rules to manage who could access to container. This because the container is an isolated entity. If you want to see the rules that already exist, you have to type:
+```
+vagrant@host-c:~$ sudo iptables -L
+```
+By default there are not rules and you should see this:
+```
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain FORWARD (policy DROP)
+target     prot opt source               destination
+DOCKER-USER  all  --  anywhere             anywhere
+DOCKER-ISOLATION-STAGE-1  all  --  anywhere             anywhere
+ACCEPT     all  --  anywhere             anywhere             ctstate RELATED,ESTABLISHED
+DOCKER     all  --  anywhere             anywhere
+ACCEPT     all  --  anywhere             anywhere
+ACCEPT     all  --  anywhere             anywhere
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination
+
+Chain DOCKER (1 references)
+target     prot opt source               destination
+ACCEPT     tcp  --  anywhere             172.17.0.2           tcp dpt:http
+
+Chain DOCKER-ISOLATION-STAGE-1 (1 references)
+target     prot opt source               destination
+DOCKER-ISOLATION-STAGE-2  all  --  anywhere             anywhere
+RETURN     all  --  anywhere             anywhere
+
+Chain DOCKER-ISOLATION-STAGE-2 (1 references)
+target     prot opt source               destination
+DROP       all  --  anywhere             anywhere
+RETURN     all  --  anywhere             anywhere
+
+Chain DOCKER-USER (1 references)
+target     prot opt source               destination
+RETURN     all  --  anywhere             anywhere
+```
+You can observe three chains: the input chain, it manages packets in input, the output chain, it manages packets in output, and the chain forward, it is for packets that are forwarded through the system. By default all chains have a policy of accepting all packets (policy ACCEPT), which means they don't filter anything. The other chains refer to the container. I added rules for the input chain to allow me to decide which protocols or services could reach the host-c. Then I made some rules for the docker-user chain to decide who could reach the container and consequently the web server.
+
+Rules added in the input chain:
+
+- Allow all Incoming SSH:
+```
+iptables -A INPUT -p tcp --dport 22 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+```
+
+- Allow all incoming HTTP:
+```
+iptables -A INPUT -p tcp --dport 80 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+```
+
+- Allow all incoming HTTPS:
+```
+iptables -A INPUT -p tcp --dport 443 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
+```
+
+- Allow loopback connections:
+```
+iptables -A INPUT -i lo -j ACCEPT
+```
+
+- Allow ICMP echo-request (for input ping):
+```
+iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT
+```
+
+- Allow ICMP echo-reply (to reply echo-request):
+```
+iptables -A INPUT -p icmp --icmp-type echo-reply -j ACCEPT
+```
+
+- Drop all packets that do not match any of the rules described above:
+```
+iptables -A INPUT -j DROP
+```
+After adding these rules, if you type ```iptables -L```, you should see in the input chain:
+```
+Chain INPUT (policy ACCEPT)
+target     prot opt source               destination
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:ssh ctstate NEW,ESTABLISHED  
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:http ctstate NEW,ESTABLISHED 
+ACCEPT     tcp  --  anywhere             anywhere             tcp dpt:https ctstate NEW,ESTABLISHED
+ACCEPT     all  --  anywhere             anywhere
+ACCEPT     icmp --  anywhere             anywhere             icmp echo-request
+ACCEPT     icmp --  anywhere             anywhere             icmp echo-reply
+DROP       all  --  anywhere             anywhere
+```
+So the policy remains ACCEPT, but with last rules I drop all packets that do not match any of the rules.
+
+Now I have to add rules to manage in docker-user chain to manage the container:
+
+- Drop all the other requests:
+```
+iptables -I DOCKER-USER -i enp0s8 -j DROP
+```
+
+- Allow subnet 192.168.1.0/25 to reach the container:
+```
+iptables -I DOCKER-USER -i enp0s8 -s 192.168.1.0/25 -j ACCEPT
+```
+
+- Allow subnet 192.168.3.0/25 to reach the container:
+```
+iptables -I DOCKER-USER -i enp0s8 -s 192.168.3.0/25 -j ACCEPT
+```
+Then if you type ```iptables -L```, you should see in the docker-user chain:
+```
+Chain DOCKER-USER (1 references)
+target     prot opt source               destination
+ACCEPT     all  --  192.168.3.0/25       anywhere
+ACCEPT     all  --  192.168.1.0/25       anywhere
+DROP       all  --  anywhere             anywhere
+RETURN     all  --  anywhere             anywhere
+```
+So the web server mounted on the container will be reachable only by the two subnets. The order of the rules is important. The two drop rules must be at the bottom of the chain.
 
 # Test
 
