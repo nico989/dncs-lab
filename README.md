@@ -151,7 +151,7 @@ Previously I introduced my choice to use tagged VLANs to separate logically host
 At the end I configured router's interface enp0s8, that is connected to switch, like two different logical interfaces and for this in the previous IP addresses table there are two interface (enp0s8.9 and enp0s9.10) with two different IP addresses. Intuitively enpos8.9 belongs to VLAN tag=9 and enp0s9.10 belongs to VLAN tag=10.
 
 | VLAN TAG | Switch Interface | Router Interface | Subnet |
-| :---: |  :---: | :---: | :---: | :---: |
+| :---: |  :---: | :---: | :---: |
 | 9 | enp0s9 | enp0s8.9 | 192.168.1.0/23 |
 | 10 | enp0s10 | enp0s8.10 | 192.168.3.0/23 |
 
