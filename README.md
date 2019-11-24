@@ -147,7 +147,7 @@ The last is a point-to-point subnet (PTP), because it connects only two routers 
 
 ## VLANs
 
-Previously I introduced my choice to use tagged VLANs to separate logically host-a and host-b on two different subnets. The two hosts are connected each other by switch, so I had to configure the switch for VLANs. Then I had to assign two different tags to the two different interfaces that are connected to host-a and host-b. The switch's interface enp0s9 has tag=9, instead interface epn0s10 has tag=10. Then last interface enp0s8 is connected to router and it will be a trunk port.
+Previously I introduced my choice to use tagged VLANs to separate logically host-a and host-b on two different subnets. The two hosts are connected each other by switch, so I had to configure the switch for VLANs. Then I had to assign two different tags to the two different interfaces that are connected to host-a and host-b. The switch's interface enp0s9 has tag=9, instead interface enp0s10 has tag=10. Then last interface enp0s8 is connected to router and it will be a trunk port.
 At the end I configured router's interface enp0s8, that is connected to switch, like two different logical interfaces and for this in the previous IP addresses table there are two interface (enp0s8.9 and enp0s9.10) with two different IP addresses. Intuitively enpos8.9 belongs to VLAN tag=9 and enp0s9.10 belongs to VLAN tag=10.
 
 | VLAN TAG | Switch Interface | Router Interface | Subnet |
@@ -176,7 +176,7 @@ To set up interfaces and to assign IP addresses or to add ports to switch:
 ip link set enp0s8 up
 ip addr add 192.168.1.2/23 dev enp0s8
 ```
-First line sets up interface enp0s8, then the seconds assigns IP address to interface.
+In first line I set up interface enp0s8, then in the second I assign IP address to interface.
 
 - In hostB.sh:
 ```
@@ -224,7 +224,7 @@ ovs-vsctl add-port switch enp0s8
 ovs-vsctl add-port switch enp0s9 tag=9
 ovs-vsctl add-port switch enp0s10 tag=10
 ```
-The first line creates switch called switch. Next three lines set interfaces of switch up. Then I added ports to interfaces, instead of IP addresses given that switch works on Data Link level. In the last two lines I added ports to interfaces with their respective tags, because refers to VLAN.
+The first line creates switch called switch. In the next three lines I set interfaces of switch up. Then I added ports to interfaces, instead of IP addresses given that switch works on Data Link level. In the last two lines I added ports to interfaces with their respective tags, because they refer to VLAN.
 
 # Routing
 
@@ -236,31 +236,31 @@ After deciding subnetting and IP addresses, I had to make hosts communicate each
 ```
 ip route add 192.168.0.0/21 via 192.168.1.1
 ```
-Route to 192.168.0.0/21 through 192.168.1.1, that is IP address of router-1's interface enp0s8.9. I chose generic subnet 192.168.0.0/21, because it takes the subnets up to 192.168.7.255. Therefore this router will take subnet 192.168.3.0/23, where there is host-b, and 192.168.5.0/25, where there is host-c.
+Route to 192.168.0.0/21 through 192.168.1.1, that is IP address of router-1's interface enp0s8.9. I chose generic subnet 192.168.0.0/21, because it takes the subnets up to 192.168.7.255. Therefore I can reach the subnet 192.168.3.0/23, where the host-b is located, and 192.168.5.0/25, where the host-c is located, with this route.
 
 - hostB.sh:
 ```
 ip route add 192.168.0.0/21 via 192.168.3.1
 ```
-Route to 192.168.0.0/21 through 192.168.3.1, that is IP address of router-1's interface enp0s8.10.
+Route to 192.168.0.0/21 through 192.168.3.1, that it is IP address of router-1's interface enp0s8.10.
 
 - hostC.sh:
 ```
 ip route add 192.168.0.0/22 via 192.168.5.1
 ```
-Route to 192.168.0.0/22 through 192.168.5.1, that is IP address of router-2's interface enp0s8. I changed generic route, because from host-c I need to reach only host-a and host-b. So 192.168.0.0/22 takes the subnets up to 192.168.3.255.
+Route to 192.168.0.0/22 through 192.168.5.1, that it is IP address of router-2's interface enp0s8. I changed generic route, because from host-c I need to reach only host-a and host-b. So 192.168.0.0/22 takes the subnets up to 192.168.3.255.
 
 - router1.sh:
 ```
 ip route add 192.168.5.0/25 via 10.10.0.2 
 ```
-Route to 192.168.5.0/25 through 10.10.0.2, that is IP address of router-2's interface enp0s9. From router-1 I have to forward all traffic to router-2, to reach host-c. Then it is enough to use 192.168.5.0/25.
+Route to 192.168.5.0/25 through 10.10.0.2, that it is IP address of router-2's interface enp0s9. I have to forward all traffic to router-2 to reach host-c from router-1. Then it is enough to use 192.168.5.0/25.
 
 - router2.sh:
 ```
 ip route add 192.168.0.0/22 via 10.10.0.1
 ```
-Route to 192.168.0.0/22 through 10.10.0.1, that is IP address of router-1's interface enp0s8. From router-2 I have to forward all traffic to router-1, to reach host-a and host-b. So that is enough for me the generic subnet 192.168.0.0/22.
+Route to 192.168.0.0/22 through 10.10.0.1, that it is IP address of router-1's interface enp0s8. I have to forward all traffic to router-1 to reach host-a and host-b from router-2. It is enough for me the generic subnet 192.168.0.0/22.
 
 ## Routing tables
 
@@ -313,7 +313,7 @@ apt-get update
 apt-get install -y docker-ce
 ```
 
-Therefore I created a folder where I put my index.html, which inside there is the web page mounted on web server:
+Therefore I created a folder where I put my index.html, where inside is the web page mounted on web server:
 ```
 mkdir /webserver
 echo "
@@ -355,11 +355,11 @@ docker rm $(docker ps -a -q)
 
 # Firewall
 
-To have a minimum of protection on the host-c and on the container, I tried to make a small firewall. So I added some rules to decide who can access to host-c and the container. I used the command ``` iptables ``` as root, to create my custom rules. I made rules to choose which protocols and services could reach the host-c and separately I added rules to manage who could access to container. This because the container is an isolated entity. If you want to see the rules that already exist, you have to type:
+To have a minimum of protection on the host-c and on the container, I tried to make a small firewall. So I added some rules to decide who can access to host-c and the container. I used the command ``` iptables ``` as root to create my custom rules. I made rules to choose which protocols and services could reach the host-c and separately I added rules to manage who could access to container. This because the container is an isolated entity. If you want to see the rules that already exist, you have to type:
 ```
 vagrant@host-c:~$ sudo iptables -L
 ```
-By default there are not rules and you should see this:
+By default there are not custom rules and you should see this:
 ```
 Chain INPUT (policy ACCEPT)
 target     prot opt source               destination
@@ -394,11 +394,11 @@ Chain DOCKER-USER (1 references)
 target     prot opt source               destination
 RETURN     all  --  anywhere             anywhere
 ```
-You can observe three chains: the input chain, it manages packets in input, the output chain, it manages packets in output, and the chain forward, it is for packets that are forwarded through the system. By default all chains have a policy of accepting all packets (policy ACCEPT), which means they don't filter anything. The other chains refer to the container. I added rules for the input chain to allow me to decide which protocols or services could reach the host-c. Then I made some rules for the docker-user chain to decide who could reach the container and consequently the web server.
+You can observe three chains: the input chain, it manages packets in input, the output chain, it manages packets in output, and the chain forward, it is for packets that are forwarded through the system. The other chains refer to the container. I added rules for the input chain to allow me to decide which protocols or services could reach the host-c. Then I made some rules for the docker-user chain to decide who could reach the container and consequently the web server.
 
 Rules added in the input chain:
 
-- Allow all Incoming SSH:
+- Allow all incoming SSH:
 ```
 iptables -A INPUT -p tcp --dport 22 -m conntrack --ctstate NEW,ESTABLISHED -j ACCEPT
 ```
@@ -486,7 +486,7 @@ cd dncs-lab
 ~/dncs-lab$ vagrant up
 ```
 
-You have to wait some minutes and after you can check the correct creation of six virtual machines with:
+You wait some minutes and after you can check the correct creation of six virtual machines with:
 ```
 ~/dncs-lab$ vagrant status
 ```
@@ -503,12 +503,12 @@ host-b                    running (virtualbox)
 host-c                    running (virtualbox)
 ```
 
-For the last thing you have to connect to host-a or host-b through ssh connection and then try to curl the web page:
+For the last thing you connect to host-a or host-b through ssh connection and then try to curl the web page:
 ```
 ~/dncs-lab$ vagrant ssh host-a
 vagrant@host-a:~$ curl 192.168.5.2:80
 ```
-You have to see the web page:
+You should see the web page:
 ```
 
 <!DOCTYPE html>
@@ -527,7 +527,7 @@ You have to see the web page:
 
 ## Test all net
 
-If you want you can test all net. Firstly you should test the connection between host-a and host-b. Simply you have to connect to host-a or host-b through ssh connection and then you have to ping host-b or host-a through their respective IP addresses.
+If you want you can test all net. Firstly you should test the connection between host-a and host-b. Simply you connect to host-a or host-b through ssh connection and then you ping host-b or host-a through their respective IP addresses.
 ```
 ~/dncs-lab$ vagrant ssh host-a
 vagrant@host-a:~$ ping 192.168.3.2
@@ -544,9 +544,9 @@ PING 192.168.3.2 (192.168.3.2) 56(84) bytes of data.
 5 packets transmitted, 5 received, 0% packet loss, time 4006ms
 rtt min/avg/max/mdev = 0.961/2.289/3.965/1.056 ms
 ```
-Which confirms that host-b is reacheable by host-a. 
+Which it confirms that host-b is reacheable by host-a. 
 
-Then you can test the viceversa, that is host-a is reacheable by host-b:
+Then you can test that host-a is reacheable by host-b:
 ```
 ~/dncs-lab$ vagrant ssh host-b
 vagrant@host-b:~$ ping 192.168.1.2
