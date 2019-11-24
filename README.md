@@ -9,7 +9,7 @@ This repository contains the Vagrant files required to run the virtual lab envir
         |                                                          |enp0s3
         +--+--+                +------------+               +------------+
         |     |                |            |               |            |
-        |     |          enp0s3|            |ensp0s9  enp0s9|            |
+        |     |          enp0s3|            |enp0s9   enp0s9|            |
         |     +----------------+  router-1  +---------------+  router-2  |
         |     |                |            |               |            |
         |     |                |            |               |            |
@@ -27,7 +27,7 @@ This repository contains the Vagrant files required to run the virtual lab envir
         |  V  |               |enp0s9       |enp0s10               |enp0s3
         |  A  |               |             |                      |
         |  G  |               |             |                      |
-        |  R  |               |enps0s8      |enp0s8                |
+        |  R  |               |enp0s8       |enp0s8                |
         |  A  |        +----------+     +----------+               |
         |  N  |        |          |     |          |               |
         |  T  |  enp0s3|          |     |          |               |
